@@ -1,7 +1,12 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:azblob/azblob.dart';
+import 'package:path/path.dart';
+import 'package:mime/mime.dart';
 
 class LiveSampleScreen extends StatefulWidget {
   // final Uint8List image;
@@ -14,6 +19,7 @@ class LiveSampleScreen extends StatefulWidget {
 class _LiveSampleScreenState extends State<LiveSampleScreen> {
   final picker = ImagePicker();
   File? imageFile;
+  String? clothType;
 
   _imgFromGallery() async {
     await picker
@@ -72,6 +78,30 @@ class _LiveSampleScreenState extends State<LiveSampleScreen> {
       setState(() {
         imageFile = File(croppedFile.path);
       });
+      try{
+        String fileName = basename(imageFile!.path);
+        // read file as Uint8List
+        Uint8List content =  await  imageFile!.readAsBytes();
+        var storage = AzureStorage.parse('DefaultEndpointsProtocol=https;AccountName=pickreaderimage;AccountKey=ssUuzyO+fJjTKFns0nv5IV/OgVIwGzFFJfjqTfvKwUt0e9nzSzwOUhnD+rLLv0M1aow6sv3C84Ca+AStGJtzPg==;EndpointSuffix=core.windows.net');
+        String container="image";
+        // get the mine type of the file
+        String? contentType= lookupMimeType(fileName);
+        await storage.putBlob('/image-blob/$fileName',bodyBytes: content,contentType: contentType,type: BlobType.BlockBlob);
+        var url = storage.uri(path: '/image-blob/$fileName');
+        print(url);
+        final queryParameters = {
+          'url': url.toString(),
+        };
+        var clothTypeResp = await http.get(Uri.https('cloth-detection.azurewebsites.net', '/api/test-lol/', queryParameters));
+        print(clothTypeResp.body);
+        setState(() {
+          clothType = clothTypeResp.body;
+        });
+      } on AzureStorageException catch(ex){
+        print(ex.message);
+      }catch(err){
+        print(err);
+      }
       // reload();
     }
   }
@@ -210,6 +240,10 @@ class _LiveSampleScreenState extends State<LiveSampleScreen> {
                     width: MediaQuery.of(context).size.width*0.8,
                     fit: BoxFit.fill,
                   )),
+            clothType != null
+            ? Text(clothType!)
+            :
+            const Text(""),
             const SizedBox(
               height: 20.0,
             ),

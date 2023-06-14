@@ -28,11 +28,14 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  azblob: ^2.3.0
   cupertino_icons: ^1.0.2
   flutter:
     sdk: flutter
+  http: ^0.13.6
   image_cropper: 3.0.1
   image_picker: ^0.8.8
+  mime: ^1.0.4
   permission_handler: ^10.3.0
 
 dev_dependencies:
